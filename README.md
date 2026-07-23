@@ -9,7 +9,7 @@ The platform includes a dedicated **Admin Dashboard** for event management, book
 ## 🚀 Live Demo
 
 > **Frontend:** *(Add after deployment)*  
-> **Backend API:** *(Add after deployment)*
+> **Backend API:** *https://eventora-backend-mjr2.onrender.com*
 
 ---
 
