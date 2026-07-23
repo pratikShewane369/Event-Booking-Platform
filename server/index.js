@@ -13,7 +13,7 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://eventora-frontend-murex.vercel.app/"
+    "https://eventora-frontend-murex.vercel.app"
   ],
   credentials: true,
 }));
