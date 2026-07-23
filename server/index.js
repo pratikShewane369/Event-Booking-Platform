@@ -10,7 +10,12 @@ const paymentRoutes = require("./routes/payment");
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: "https://eventora-frontend-murex.vercel.app/",
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Routes 
