@@ -17,46 +17,52 @@ The platform includes a dedicated **Admin Dashboard** for event management, book
 
 ### 🏠 Home Page
 
-![Home Page](./screenshots/Screenshot (193).png)
+![Home Page](./screenshots/Home.png)
 
 ---
 
 ### 🔐 Login Page
 
-![Login Page](./screenshots/Screenshot (200).png)
+![Login Page](./screenshots/Login.png)
 
 
 ---
 
 ### 🎟️ Event Details
 
-![Event Details](./screenshots/Screenshot (201).png)
+![Event Details](./screenshots/EventDetails.png)
 
 ---
 
 ### 📅 Events Display
 
-![Booking Page](./screenshots/Screenshot (195).png)
+![Booking Page](./screenshots/Events2.png)
 
 ---
 
 ### 📅 Creating New Event
 
-![Booking Page](./screenshots/Screenshot (198).png)
+![Booking Page](./screenshots/AddEvent.png)
 
 ---
 
 ### 👤 User Dashboard
 
-![User Dashboard](./screenshots/Screenshot (199).png)
+![User Dashboard](./screenshots/UserDashboard.png)
 
 ---
 
 ### 👨‍💼 Admin Dashboard
 
-![Admin Dashboard](./screenshots/Screenshot (196).png)
+![Admin Dashboard](./screenshots/AdminDashboard.png)
 ---
 
+---
+
+### 👨‍💼 Admin Panel
+
+![Admin Dashboard](./screenshots/AdminPanel.png)
+---
 # ✨ Features
 
 ### 👤 Authentication & Security
