@@ -8,15 +8,53 @@ The platform includes a dedicated **Admin Dashboard** for event management, book
 
 ## 🚀 Live Demo
 
-> **Frontend:** *(Add after deployment)*  
+> **Frontend:** *https://eventora-frontend-murex.vercel.app/*  
 > **Backend API:** *https://eventora-backend-mjr2.onrender.com*
 
 ---
 
 ## 📸 Screenshots
 
-> Add screenshots of your application here after deployment.
+### 🏠 Home Page
 
+![Home Page](./screenshots/Screenshot (193).png)
+
+---
+
+### 🔐 Login Page
+
+![Login Page](./screenshots/Screenshot (200).png)
+
+
+---
+
+### 🎟️ Event Details
+
+![Event Details](./screenshots/Screenshot (201).png)
+
+---
+
+### 📅 Events Display
+
+![Booking Page](./screenshots/Screenshot (195).png)
+
+---
+
+### 📅 Creating New Event
+
+![Booking Page](./screenshots/Screenshot (198).png)
+
+---
+
+### 👤 User Dashboard
+
+![User Dashboard](./screenshots/Screenshot (199).png)
+
+---
+
+### 👨‍💼 Admin Dashboard
+
+![Admin Dashboard](./screenshots/Screenshot (196).png)
 ---
 
 # ✨ Features
