@@ -50,10 +50,18 @@ exports.sendOTPEmail = async (email, otp, type) => {
     };
 
     await transporter.sendMail(mailOptions);
+    transporter.verify((error, success) => {
+    if (error) {
+        console.error("Mail transporter error:", error);
+    } else {
+        console.log("Mail server is ready");
+    }
+});
     console.log(`OTP sent to ${email} of type ${type}`);
   } catch (error) {
-    console.log(`Error sending email to ${email} of type ${type}`, error);
-  }
+    console.error(error);
+    throw error;
+   }
 };
 
 exports.sendBookingEmail = async (userEmail, otp, eventType) => {

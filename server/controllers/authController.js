@@ -33,10 +33,12 @@ exports.registerUser = async(req, res) => {
             email : user.email
         });
 
-    } catch(err) {
-        res.status(400).json({
-            error : err.message
-        });
+    } catch (err) {
+    console.error("Register Error:", err);
+
+    res.status(500).json({
+        error: err.message
+    });
     }
 }
 
@@ -71,7 +73,7 @@ exports.loginUser = async(req, res) => {
         email : user.email,
         role : user.role,
         token : generateToken(user._id, user.role)
-    })
+    })  
 }
 
 exports.verifyOtp = async(req, res) => {
