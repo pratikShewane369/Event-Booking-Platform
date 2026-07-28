@@ -10,6 +10,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentFailed from './pages/PaymentFailed';
 import PaymentPage from "./pages/PaymentPage";
+import NotFound from "./components/NotFound";
 
 function App() {
   return (
@@ -27,7 +28,7 @@ function App() {
                         <Route path="/payment-success" element={<PaymentSuccess />} />
                         <Route path="/payment-failed" element={<PaymentFailed />} />
                         <Route path="/payment/:bookingId" element={<PaymentPage />} />
-                        <Route path="*" element={<h1 className="text-3xl font-bold text-center mt-20">404 - Page Not Found</h1>} />
+                        <Route path="*" element={<NotFound />} />
                    </Routes>
                  </main>
             </div>

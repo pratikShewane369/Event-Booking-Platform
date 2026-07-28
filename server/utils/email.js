@@ -109,11 +109,11 @@ exports.sendPaymentEmail = async (
 ) => {
 
     const paymentLink =
-        `http://localhost:3000/payment/${bookingId}`;
+        `https://eventora-frontend-murex.vercel.app/payment/${bookingId}`;
 
     await transporter.sendMail({
 
-        from: process.env.EMAIL_USER,
+        from: process.env.MAIL_USER,
 
         to: email,
 
