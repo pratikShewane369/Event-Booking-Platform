@@ -4,110 +4,112 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const transporter = nodemailer.createTransport({
-    service : 'gmail',
-    auth : {
-        user : process.env.MAIL_USER,
-        pass : process.env.MAIL_PASS
+    service: "gmail",
+    auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
     },
 });
 
-exports.sendOTPEmail = async (email, otp, type) => {
-  try {
-    const title = type === 'account_verification' ? 'Verify Your Event Spark Account' : 'Verify for Event Registration';
-    const msg = type === 'account_verification' ? 'Please use the following otp to verify your new Event Spark Account' : 'Please use the following otp to verify and confirm your event booking';
-
-    const mailOptions = {
-      from: process.env.MAIL_USER,
-      to: email,
-      subject: 'Your OTP Code',
-      html: `
-        <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
-          <div style="max-width: 500px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px; text-align: center;">
-            
-            <h2 style="color: #333;">${title}</h2>
-            
-            <p style="font-size: 16px; color: #555;">
-              ${msg}
-            </p>
-            
-            <div style="font-size: 28px; font-weight: bold; color: #2c3e50; margin: 20px 0;">
-              ${otp}
-            </div>
-            
-            <p style="font-size: 14px; color: #888;">
-              This OTP is valid for a limited time. Do not share it with anyone.
-            </p>
-
-            <hr style="margin: 20px 0;" />
-
-            <p style="font-size: 12px; color: #aaa;">
-              If you didn’t request this, you can safely ignore this email.
-            </p>
-
-          </div>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-    transporter.verify((error, success) => {
+// Verify transporter once when the server starts
+transporter.verify((error, success) => {
     if (error) {
-        console.error("Mail transporter error:", error);
+        console.error("❌ Mail transporter error:", error);
     } else {
-        console.log("Mail server is ready");
+        console.log("✅ Mail server is ready");
     }
 });
-    console.log(`OTP sent to ${email} of type ${type}`);
-  } catch (error) {
-    console.error(error);
-    throw error;
-   }
+
+exports.sendOTPEmail = async (email, otp, type) => {
+    const title =
+        type === "account_verification"
+            ? "Verify Your Event Spark Account"
+            : "Verify for Event Registration";
+
+    const msg =
+        type === "account_verification"
+            ? "Please use the following OTP to verify your new Event Spark Account."
+            : "Please use the following OTP to verify and confirm your event booking.";
+
+    const mailOptions = {
+        from: process.env.MAIL_USER,
+        to: email,
+        subject: "Your OTP Code",
+        html: `
+        <div style="font-family: Arial, sans-serif; background:#f4f4f4; padding:20px;">
+            <div style="max-width:500px; margin:auto; background:#fff; padding:20px; border-radius:8px; text-align:center;">
+                <h2>${title}</h2>
+
+                <p>${msg}</p>
+
+                <h1 style="letter-spacing:4px; color:#2563eb;">
+                    ${otp}
+                </h1>
+
+                <p>This OTP is valid for a limited time.</p>
+
+                <hr>
+
+                <small>If you didn't request this email, please ignore it.</small>
+            </div>
+        </div>
+        `,
+    };
+
+    try {
+        const info = await transporter.sendMail(mailOptions);
+
+        console.log("✅ OTP Email Sent");
+        console.log("Message ID:", info.messageId);
+
+        return info;
+    } catch (error) {
+        console.error("❌ Failed to send OTP Email");
+        console.error(error);
+        throw error;
+    }
 };
 
 exports.sendBookingEmail = async (userEmail, otp, eventType) => {
-  try {
     const mailOptions = {
-      from: process.env.MAIL_USER,
-      to: userEmail,
-      subject: `Booking Confirmed: ${eventType}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 20px;">
-          <div style="max-width: 500px; margin: auto; background: #ffffff; padding: 25px; border-radius: 10px; text-align: center;">
-            
-            <h2 style="color: #2c3e50;">Booking Confirmation</h2>
-            
-            <p style="font-size: 16px; color: #555;">
-              Your booking for <strong>${eventType}</strong> has been successfully initiated.
-            </p>
+        from: process.env.MAIL_USER,
+        to: userEmail,
+        subject: `Booking Confirmed: ${eventType}`,
+        html: `
+        <div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:20px;">
+            <div style="max-width:500px; margin:auto; background:#fff; padding:25px; border-radius:10px; text-align:center;">
 
-            <p style="font-size: 16px; color: #555;">
-              Please use the OTP below to confirm your booking:
-            </p>
+                <h2>Booking Confirmation</h2>
 
-            <div style="font-size: 30px; font-weight: bold; color: #27ae60; margin: 20px 0; letter-spacing: 2px;">
-              ${otp}
+                <p>Your booking for <strong>${eventType}</strong> has been initiated.</p>
+
+                <p>Please use this OTP to confirm your booking:</p>
+
+                <h1 style="letter-spacing:4px; color:green;">
+                    ${otp}
+                </h1>
+
+                <hr>
+
+                <small>This OTP is valid for a limited time.</small>
+
             </div>
-
-            <p style="font-size: 14px; color: #888;">
-              This OTP is valid for a limited time. Do not share it with anyone.
-            </p>
-
-            <hr style="margin: 20px 0;" />
-
-            <p style="font-size: 12px; color: #aaa;">
-              If you did not request this booking, please ignore this email.
-            </p>
-
-          </div>
         </div>
-      `
+        `,
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log(`OTP sent to ${userEmail} for event ${eventType}`);
-  } catch (error) {
-    console.log(`Error sending email to ${userEmail} for event ${eventType}`, error);
-  }
+    try {
+        const info = await transporter.sendMail(mailOptions);
+
+        console.log("✅ Booking Email Sent");
+        console.log("Message ID:", info.messageId);
+
+        return info;
+    } catch (error) {
+        console.error("❌ Failed to send Booking Email");
+        console.error(error);
+        throw error;
+    }
 };
 
 exports.sendPaymentEmail = async (
@@ -116,29 +118,21 @@ exports.sendPaymentEmail = async (
     bookingId
 ) => {
 
-    const paymentLink =
-        `https://eventora-frontend-murex.vercel.app/payment/${bookingId}`;
+    const paymentLink = `https://eventora-frontend-murex.vercel.app/payment/${bookingId}`;
 
-    await transporter.sendMail({
-
+    const mailOptions = {
         from: process.env.MAIL_USER,
-
         to: email,
-
         subject: "Payment Required for Event Booking",
-
         html: `
             <h2>Your booking has been approved 🎉</h2>
 
             <p>
-                Your request for
-                <strong>${eventTitle}</strong>
-                has been approved by the administrator.
+                Your request for <strong>${eventTitle}</strong> has been approved.
             </p>
 
             <p>
-                Please complete your payment by clicking the
-                button below.
+                Complete your payment by clicking the button below.
             </p>
 
             <a
@@ -156,11 +150,20 @@ exports.sendPaymentEmail = async (
                 Pay Now
             </a>
 
-            <p>
-                If you do not complete payment,
-                your booking will remain pending.
-            </p>
-        `
-    });
+            <p>If you do not complete the payment, your booking will remain pending.</p>
+        `,
+    };
 
+    try {
+        const info = await transporter.sendMail(mailOptions);
+
+        console.log("✅ Payment Email Sent");
+        console.log("Message ID:", info.messageId);
+
+        return info;
+    } catch (error) {
+        console.error("❌ Failed to send Payment Email");
+        console.error(error);
+        throw error;
+    }
 };
