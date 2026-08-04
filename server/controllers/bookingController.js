@@ -165,11 +165,11 @@ exports.confirmBooking = async (req, res) => {
 
         await booking.save();
 
-        await sendPaymentEmail(
-          booking.userId.email,
-          event.title,
-          booking._id
-         );
+        // await sendPaymentEmail(
+        //   booking.userId.email,
+        //   event.title,
+        //   booking._id
+        //  );
 
         console.log("Payment email would be sent here.");
         res.json({
