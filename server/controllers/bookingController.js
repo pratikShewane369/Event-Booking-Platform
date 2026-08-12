@@ -171,7 +171,7 @@ exports.confirmBooking = async (req, res) => {
         //   booking._id
         //  );
 
-        console.log("Payment email would be sent here.");
+        // console.log("Payment email would be sent here.");
         res.json({
            message: "Payment email sent successfully."
         });
