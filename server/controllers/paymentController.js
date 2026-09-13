@@ -3,6 +3,9 @@ dotenv.config(); // Config loaded first before Stripe instantiates
 
 const Stripe = require("stripe");
 const Booking = require("../models/Booking");
+const Event = require("../models/Event");
+const { sendBookingConfirmationEmail  } = require("../utils/email"); // adjust to your actual export name
+const { redisClient } = require("../config/redisClient");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -27,13 +30,8 @@ exports.createCheckoutSession = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Fallback URL if CLIENT_URL is undefined
     const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
 
-    // NOTE: assumes booking.amount is stored in rupees (matches the ₹ shown
-    // on the dashboard). Stripe requires the amount in the smallest currency
-    // unit (paise for INR), so we multiply by 100 here.
-    // If booking.amount is ALREADY in paise in your DB, remove the "* 100".
     const unitAmountPaise = Math.round(booking.amount * 100);
 
     const session = await stripe.checkout.sessions.create({
@@ -52,9 +50,6 @@ exports.createCheckoutSession = async (req, res) => {
           quantity: 1,
         },
       ],
-      // {CHECKOUT_SESSION_ID} is filled in by Stripe itself on redirect.
-      // We use this to verify the payment server-side instead of trusting
-      // the redirect blindly.
       success_url: `${clientUrl}/payments-success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}`,
       cancel_url: `${clientUrl}/payments-failed?bookingId=${bookingId}`,
     });
@@ -83,15 +78,14 @@ exports.confirmPayment = async (req, res) => {
         .json({ message: "session_id and bookingId are required" });
     }
 
-    const booking = await Booking.findById(bookingId);
+    const booking = await Booking.findById(bookingId)
+      .populate("eventId")
+      .populate("userId");
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    // Ask Stripe directly whether this session actually completed payment.
-    // Never trust a redirect alone — this is what stops someone from
-    // hand-crafting a "success" URL to mark a booking paid for free.
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
     if (session.payment_status !== "paid") {
@@ -102,9 +96,55 @@ exports.confirmPayment = async (req, res) => {
         .json({ message: "Payment not completed", booking });
     }
 
+    // Avoid double-processing if this endpoint is hit twice for the same session
+    // (e.g. user refreshes the success page)
+    if (booking.status === "confirmed" && booking.paymentStatus === "paid") {
+      return res.status(200).json({
+        success: true,
+        message: "Payment already confirmed",
+        booking,
+      });
+    }
+
+    const event = await Event.findById(booking.eventId._id);
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    if (event.availableSeats <= 0) {
+      booking.paymentStatus = "failed";
+      await booking.save();
+      return res.status(400).json({
+        message: "No seats available, payment cannot be confirmed",
+        booking,
+      });
+    }
+
     booking.paymentStatus = "paid";
     booking.status = "confirmed";
     await booking.save();
+
+    event.availableSeats -= 1;
+    await event.save();
+
+    try {
+      await sendBookingConfirmationEmail(
+        booking.userId.email,
+        booking.eventId.title,
+        booking._id
+      );
+    } catch (emailErr) {
+      // Don't fail the whole request just because the email failed —
+      // the booking is already correctly confirmed and paid at this point
+      console.error("Failed to send booking confirmation email:", emailErr);
+    }
+
+    try {
+      await redisClient.del(`booking:${bookingId}`);
+    } catch (cacheErr) {
+      console.error("Cache invalidation failed:", cacheErr);
+    }
 
     res.status(200).json({
       success: true,
@@ -129,6 +169,12 @@ exports.failPayment = async (req, res) => {
       if (booking) {
         booking.paymentStatus = "failed";
         await booking.save();
+
+        try {
+          await redisClient.del(`booking:${bookingId}`);
+        } catch (cacheErr) {
+          console.error("Cache invalidation failed:", cacheErr);
+        }
       }
     }
 

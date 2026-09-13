@@ -2,12 +2,13 @@ const express = require("express");
 const router = express.Router();
 const {protect, admin} = require("../middleware/auth");
 const {getAllEvents, getEventById, createEvent, updateEvent, deleteEvent} = require("../controllers/eventController");
+const cacheMiddleware = require('../middleware/cache');
 
 // Get All Events
-router.get("/", getAllEvents);
+router.get("/", cacheMiddleware('events_list', 60), getAllEvents);
 
 // Get Event By Id
-router.get("/:id", getEventById);
+router.get("/:id", cacheMiddleware('events_list', 60), getEventById);
 
 // Create a Event (Admin Only)
 router.post("/", protect, admin, createEvent);

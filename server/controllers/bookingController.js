@@ -1,92 +1,71 @@
-const Booking = require("../models/Booking.js");
-const OTP = require("../models/OTP");
-const Event = require("../models/Event");
-const {sendOTPEmail, sendBookingEmail, sendPaymentEmail} = require("../utils/email");
+const Booking = require('../models/Booking');
+const Event = require('../models/Event');
+const {sendOTPEmail, sendBookingConfirmationEmail } = require('../utils/email'); // adjust to your actual exports
+const { redisClient } = require('../config/redisClient');
+
+const OTP_TTL_SECONDS = 300; // 5 minutes — same as auth OTP
 
 const generateOtp = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-exports.sendBookingOtp = async(req, res) => {
-    const otp = generateOtp();
-    await OTP.findOneAndDelete({email : req.user.email, action : 'event_booking'});
-    await OTP.create({email : req.user.email, otp : otp, action : 'event_booking'});
-    await sendOTPEmail(req.user.email, otp, 'event_booking');
-    res.json({message : 'OTP send to email'});
+exports.sendBookingOtp = async (req, res) => {
+    try {
+        const otp = generateOtp();
+
+        // Overwriting the key replaces any previous OTP automatically — no separate delete needed
+        await redisClient.setEx(`otp:event_booking:${req.user.email}`, OTP_TTL_SECONDS, otp);
+
+        await sendOTPEmail(req.user.email, otp, 'event_booking');
+
+        res.json({ message: 'OTP send to email' });
+    } catch (err) {
+        console.error("sendBookingOtp Error:", err);
+        res.status(500).json({ error: err.message });
+    }
 }
 
-exports.bookEvent = async(req, res) => {
+exports.bookEvent = async (req, res) => {
     try {
 
-    const {eventId, otp} = req.body;
-        
-    const otpRecord = await OTP.findOne({email : req.user.email, otp, action : 'event_booking'});
-    if(!otpRecord) {
-        return res.status(400).json({error : 'Invalid or expired OTP'});
-    }
-    const event = await Event.findById(eventId);
-    if(!event) {
-        return res.status(404).json({message : 'Event not found'});
-    }
-    if(event.availableSeats <= 0) {
-        return res.status(400).json({ error : 'Seats not available'});
-    }
-    const existingBooking = await Booking.findOne({userId : req.user._id, eventId});
-    if(existingBooking) {
-        return res.status(400).json({ message : 'Already booked Event'});
-    }
+        const { eventId, otp } = req.body;
 
-    const booking = await Booking.create({
-        userId : req.user._id,
-        status : 'pending',
-        paymentStatus : 'not_paid',
-        eventId,
-        amount : event.ticketPrice
-    });
+        const storedOtp = await redisClient.get(`otp:event_booking:${req.user.email}`);
 
-    await OTP.deleteMany({email : req.user.email, action : 'event_booking'});
-    res.status(201).json({ message: 'Booking request submitted', booking });
+        if (!storedOtp || storedOtp !== otp) {
+            return res.status(400).json({ error: 'Invalid or expired OTP' });
+        }
+
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+        if (event.availableSeats <= 0) {
+            return res.status(400).json({ error: 'Seats not available' });
+        }
+        const existingBooking = await Booking.findOne({ userId: req.user._id, eventId });
+        if (existingBooking) {
+            return res.status(400).json({ message: 'Already booked Event' });
+        }
+
+        const booking = await Booking.create({
+            userId: req.user._id,
+            status: 'pending',
+            paymentStatus: 'not_paid',
+            eventId,
+            amount: event.ticketPrice
+        });
+
+        // OTP used successfully — remove it so it can't be reused
+        await redisClient.del(`otp:event_booking:${req.user.email}`);
+
+        res.status(201).json({ message: 'Booking request submitted', booking });
     } catch (err) {
         res.status(500).json({
-            error : err.message
+            error: err.message
         })
     }
-
-    
 }
-
-// exports.confirmBooking = async (req, res) => {
-//     const paymentStatus = req.body.paymentStatus;
-//     if(!['paid', 'not_paid'].includes(paymentStatus)) {
-//         return res.status(400).json({error : 'Invalid Payment Status'});
-//     }
-
-//     const booking = await Booking.findById(req.params.id).populate('eventId');
-//     if(!booking) {
-//         return res.status(404).json({message : 'Booking not found'});
-//     }
-//     if(booking.status === 'confirmed') {
-//         return res.status(400).json({error : 'Booking is Already Confirmed'});
-//     }
-
-//     const event = await Event.findById(booking.eventId._id);
-//     if(event.availableSeats <= 0) {
-//         return res.status(400).json({error : 'No seats available'});
-//     }
-
-//     booking.status = 'confirmed';
-//     if(paymentStatus) {
-//         booking.paymentStatus = paymentStatus;
-//     }
-//     await booking.save();
-//     event.availableSeats -= 1;
-//     await event.save();
-
-//     // admin confirmed booking, send email to user
-//     await sendBookingEmail(req.user.email, event.title, booking._id);
-
-//     res.json({message : 'Booking Confirmed'});
-// }
 
 exports.confirmBooking = async (req, res) => {
     try {
@@ -98,6 +77,8 @@ exports.confirmBooking = async (req, res) => {
                 error: "Invalid Payment Status"
             });
         }
+
+        const bookingCacheKey = `booking:${req.params.id}`;
 
         const booking = await Booking.findById(req.params.id)
             .populate("eventId")
@@ -120,8 +101,6 @@ exports.confirmBooking = async (req, res) => {
 
         const event = await Event.findById(booking.eventId._id);
 
-        // console.log("Booking User:", booking.userId);
-        // console.log("User Email:", booking.userId?.email);
         if (!event) {
             return res.status(404).json({
                 error: "Event not found"
@@ -145,11 +124,17 @@ exports.confirmBooking = async (req, res) => {
             event.availableSeats -= 1;
             await event.save();
 
-            await sendBookingEmail(
-                booking.userId.email,
-                event.title,
-                booking._id
-            );
+            await sendBookingConfirmationEmail(
+    booking.userId.email,
+    event.title,
+    booking._id
+);
+
+            try {
+                await redisClient.del(bookingCacheKey);
+            } catch (cacheErr) {
+                console.error("Cache invalidation failed:", cacheErr);
+            }
 
             return res.json({
                 message: "Free booking confirmed."
@@ -160,18 +145,16 @@ exports.confirmBooking = async (req, res) => {
         // PAID EVENT
 
         booking.status = "payment_pending";
-
         booking.paymentStatus = "not_paid";
 
         await booking.save();
 
-        // await sendPaymentEmail(
-        //   booking.userId.email,
-        //   event.title,
-        //   booking._id
-        //  );
+        try {
+            await redisClient.del(bookingCacheKey);
+        } catch (cacheErr) {
+            console.error("Cache invalidation failed:", cacheErr);
+        }
 
-        // console.log("Payment email would be sent here.");
         res.json({
            message: "Payment email sent successfully."
         });
@@ -188,9 +171,13 @@ exports.confirmBooking = async (req, res) => {
     }
 };
 
-exports.getMyBookings = async(req, res) => {
-    const bookings = await Booking.find({userId : req.user._id}).populate('eventId');
-    res.json(bookings);
+exports.getMyBookings = async (req, res) => {
+    try {
+        const bookings = await Booking.find({ userId: req.user._id }).populate('eventId');
+        res.json(bookings);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 }
 
 exports.getAllBookings = async (req, res) => {
@@ -225,7 +212,6 @@ exports.cancelBooking = async (req, res) => {
         booking.status = 'cancelled';
         await booking.save();
 
-        // Only restore the seat if it was actually confirmed and deducted
         if (wasConfirmed) {
             const event = await Event.findById(booking.eventId);
             if (event) {

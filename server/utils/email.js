@@ -61,7 +61,7 @@ const FROM_EMAIL =
 
 const FROM_NAME =
     process.env.MAIL_FROM_NAME ||
-    "Event Spark";
+    "Eventora";
 
 
 // ======================================================
@@ -253,7 +253,7 @@ exports.sendOTPEmail = async (
     const title =
         isAccountVerification
 
-            ? "Verify Your Event Spark Account"
+            ? "Verify Your Eventora Account"
 
             : "Verify Your Event Registration";
 
@@ -261,7 +261,7 @@ exports.sendOTPEmail = async (
     const message =
         isAccountVerification
 
-            ? "Please use the following OTP to verify your Event Spark account."
+            ? "Please use the following OTP to verify your Eventora account."
 
             : "Please use the following OTP to verify and confirm your event booking.";
 
@@ -282,7 +282,7 @@ exports.sendOTPEmail = async (
     >
 
     <title>
-        Event Spark OTP
+        Eventora OTP
     </title>
 
 </head>
@@ -391,7 +391,7 @@ exports.sendOTPEmail = async (
 <p>
 
     <strong>
-        Event Spark Team
+        Eventora Team
     </strong>
 
 </p>
@@ -415,7 +415,7 @@ exports.sendOTPEmail = async (
         to: email,
 
         subject:
-            "Your Event Spark OTP Code",
+            "Your Eventora OTP Code",
 
         html: html
 
@@ -575,7 +575,7 @@ exports.sendBookingEmail = async (
 <p>
 
     <strong>
-        Event Spark Team
+        Eventora Team
     </strong>
 
 </p>
@@ -607,188 +607,68 @@ exports.sendBookingEmail = async (
 
 };
 
+// Send Booking Confirmation Email 
 
-
-// ======================================================
-// SEND PAYMENT EMAIL
-// ======================================================
-
-exports.sendPaymentEmail = async (
-    email,
+exports.sendBookingConfirmationEmail = async (
+    userEmail,
     eventTitle,
     bookingId
 ) => {
 
-
-    const paymentLink =
-        `https://eventora-frontend-murex.vercel.app/payment/${bookingId}`;
-
-
     const html = `
 
 <!DOCTYPE html>
-
 <html>
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>
-        Payment Required
-    </title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmed</title>
 </head>
 
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
 
-<body
-    style="
-        margin:0;
-        padding:0;
-        background:#f4f4f4;
-        font-family:Arial,sans-serif;
-    "
->
+<div style="padding:30px 15px;">
 
+<div style="max-width:500px;margin:auto;background:#ffffff;padding:30px;border-radius:10px;text-align:center;">
 
-<div
-    style="
-        padding:30px 15px;
-    "
->
+<h2>Booking Confirmed 🎉</h2>
 
-
-<div
-    style="
-        max-width:550px;
-        margin:auto;
-        background:#ffffff;
-        padding:30px;
-        border-radius:10px;
-        text-align:center;
-    "
->
-
-
-<h2>
-
-    Your Booking Has Been Approved 🎉
-
-</h2>
-
-
-<p
-    style="
-        color:#555;
-        font-size:16px;
-        line-height:1.6;
-    "
->
-
-    Your request for
-
-    <strong>
-        ${eventTitle}
-    </strong>
-
-    has been approved.
-
+<p style="color:#555;font-size:16px;line-height:1.6;">
+    Your booking for
+    <strong>${eventTitle}</strong>
+    has been successfully confirmed.
 </p>
 
-
-<p style="color:#555;">
-
-    Please complete your payment
-    using the button below.
-
-</p>
-
-
-<div style="margin:30px 0;">
-
-
-<a
-    href="${paymentLink}"
-    style="
-        display:inline-block;
-        padding:14px 28px;
-        background:#16a34a;
-        color:#ffffff;
-        text-decoration:none;
-        border-radius:8px;
-        font-weight:bold;
-    "
->
-
-    Pay Now
-
-</a>
-
-
+<div style="margin:25px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
+    <p style="margin:0;color:#555;font-size:14px;">Booking ID</p>
+    <h3 style="letter-spacing:1px;color:#16a34a;margin:5px 0 0;font-size:20px;">
+        ${bookingId}
+    </h3>
 </div>
-
 
 <p style="color:#666;">
-
-    If you do not complete the payment,
-    your booking will remain pending.
-
+    Please keep this Booking ID for your reference. You can view full details anytime in your account dashboard.
 </p>
 
-
-<hr
-    style="
-        border:none;
-        border-top:1px solid #eee;
-        margin:25px 0;
-    "
->
-
+<hr style="border:none;border-top:1px solid #eee;margin:25px 0;">
 
 <small style="color:#888;">
-
-    If you did not request this booking,
-    please contact Event Spark support.
-
+    If you did not make this booking, please contact support immediately.
 </small>
 
-
-<p>
-
-    <strong>
-        Event Spark Team
-    </strong>
-
-</p>
-
+<p><strong>Eventora Team</strong></p>
 
 </div>
-
-
 </div>
-
-
 </body>
-
 </html>
 
 `;
 
-
     return await sendBrevoEmail({
-
-        to: email,
-
-        subject:
-            "Payment Required for Event Booking",
-
+        to: userEmail,
+        subject: `Booking Confirmed: ${eventTitle}`,
         html: html
-
     });
 
 };

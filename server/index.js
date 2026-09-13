@@ -1,13 +1,14 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+dotenv.config(); // MUST run before anything that reads process.env
+
 const mongoose = require("mongoose");
 const authRoutes = require("./routes/auth");
 const eventRoutes = require("./routes/events");
 const bookingRoutes = require("./routes/bookings");
 const paymentRoutes = require("./routes/payment");
-
-dotenv.config();
+const { connectRedis } = require('./config/redisClient'); // now REDIS_URL is already set
 
 const app = express();
 app.use(cors({  
@@ -32,6 +33,7 @@ mongoose.connect(process.env.MONGODB_URI)
 }).catch( (err) => {
     console.log("Error connecting to MongoDB", err);
 })
+connectRedis().catch(console.error);
 
 
 const PORT = process.env.PORT || 5000;
