@@ -152,6 +152,90 @@ Eventora/
 └── README.md
 ```
 
+## 🚀 Redis Caching Architecture
+
+Eventora uses **Redis caching** to reduce unnecessary MongoDB queries for frequently requested event data.
+
+### Request Flow
+
+```mermaid
+flowchart TD
+    A[React Frontend] -->|HTTP Request| B[Express Backend]
+
+    B --> C[Cache Middleware]
+
+    C -->|CACHE HIT| D[Redis]
+    C -->|CACHE MISS| E[MongoDB]
+
+    D --> F[Response]
+    E --> G[Store Response in Redis]
+    G --> F
+
+    F --> A
+```
+
+### How it works
+
+1. The React frontend sends an HTTP request to the Eventora backend.
+2. The Express cache middleware checks Redis for the requested data.
+3. **Cache HIT:** Redis already contains the response, so it is returned without querying MongoDB.
+4. **Cache MISS:** The request continues to the controller, which retrieves the data from MongoDB.
+5. The response is stored in Redis with a **60-second TTL**.
+6. The response is returned to the React frontend.
+7. When an event is created, updated, or deleted, the relevant event caches are invalidated to prevent stale data.
+
+### Cache Flow
+
+```text
+                 FRONTEND
+                    │
+                    │ HTTP Request
+                    ▼
+             EXPRESS BACKEND
+                    │
+                    ▼
+            CACHE MIDDLEWARE
+                    │
+             ┌──────┴──────┐
+             │             │
+         CACHE HIT      CACHE MISS
+             │             │
+             ▼             ▼
+           REDIS        MONGODB
+             │             │
+             │             ▼
+             │         REDIS SET
+             │          (60 sec)
+             │             │
+             └──────┬──────┘
+                    ▼
+                 RESPONSE
+                    │
+                    ▼
+                  REACT
+```
+
+### Cache Invalidation
+
+To maintain data consistency, Eventora clears the relevant cached event responses when an administrator:
+
+* Creates an event
+* Updates an event
+* Deletes an event
+
+This prevents users from receiving outdated event information from Redis.
+
+### Technologies
+
+* **Frontend:** React
+* **Backend:** Node.js, Express.js
+* **Database:** MongoDB
+* **Caching:** Redis
+* **Authentication:** JWT
+* **Payments:** Stripe
+* **Email:** Brevo
+
+
 ---
 
 # ⚙️ Environment Variables
