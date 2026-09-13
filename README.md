@@ -11,12 +11,6 @@ The platform includes a dedicated **Admin Dashboard** for event management, book
 > **Frontend:** *https://eventora-frontend-murex.vercel.app/*  
 > **Backend API:** *https://eventora-backend-mjr2.onrender.com*
 
----
-## Demo Id 
-
-**Email:** demo@gmail.com
-**Password:** Demo@123
-
 ## 📸 Screenshots
 
 ### 🏠 Home Page
